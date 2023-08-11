@@ -1,41 +1,50 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-import sklearn
-from sklearn.preprocessing import StandardScaler
 import joblib
+import numpy as np
 
 # Load the saved best models
 n_ss_splits = 20
 best_models = []
 for i in range(n_ss_splits):
-    model_filename = f"best_model_svr_{i}.joblib"  # Adjust the filename format
-    best_models.append(joblib.load(model_filename))
+    filename = f"best_model_svr_{i}.joblib"  # Adjust the filename format as needed
+    best_model = joblib.load(filename)
+    best_models.append(best_model)
 
-# Create a Streamlit web app
-st.title("SVR Model Prediction with Best Models")
+# Function to make predictions using each best model
+def make_predictions(input_features):
+    predictions = []
+    for model in best_models:
+        prediction = model.predict(input_features.reshape(1, -1))
+        predictions.append(prediction[0])
+    return predictions
 
-# Input form for user to provide 4 input features
-st.write("Enter the input features:")
+# Streamlit web app
+st.title("SVR Prediction ")
+
+# Input fields for features
 input_features = []
-for i in range(4):
-    feature = st.number_input(f"Feature {i+1}", value=0.0, format="%.2f")
-    input_features.append(feature)
-
-# Normalize the input features
-scaler = StandardScaler()
-input_features_scaled = scaler.fit_transform([input_features])
+for feature in ['A', 'B', 'C', 'D']:
+    value = st.sidebar.number_input(f"Enter value for {feature}", step=0.01)
+    input_features.append(value)
+input_features = np.array(input_features)
 
 # Make predictions using each best model
-predictions = np.array([model.predict(input_features_scaled) for model in best_models])
+predictions = make_predictions(input_features)
 
-# Display predictions for each best model
-st.write("Predictions from each best model:")
-for i, pred in enumerate(predictions):
-    st.write(f"Best Model {i+1}: {pred[0]:.2f}")
+# Display individual predictions
+st.header("Individual Predictions from Each Best Model")
+num_columns = 3
+with st.container():
+    col_width = 12 // num_columns
+    for i, prediction in enumerate(predictions):
+        if i % num_columns == 0:
+            col = st.columns(num_columns)
+        col[i % num_columns].info(f"Model {i+1}: {prediction:.2f}")
+    
 
-# Calculate and display the average and standard deviation of predictions
-average_pred = np.mean(predictions)
-std_deviation_pred = np.std(predictions)
-st.write(f"Average Prediction: {average_pred:.2f}")
-st.write(f"Standard Deviation: {std_deviation_pred:.2f}")
+# Calculate and display average and standard deviation
+average_prediction = np.mean(predictions)
+std_deviation = np.std(predictions)
+st.header("Aggregate Results")
+st.error(f"Average Prediction: {average_prediction:.2f}")
+st.error(f"Standard Deviation: {std_deviation:.2f}")
